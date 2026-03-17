@@ -24,8 +24,10 @@ import io.element.android.annotations.ContributesNode
 import io.element.android.features.startchat.StartChatNavigator
 import io.element.android.libraries.deeplink.api.usecase.InviteFriendsUseCase
 import io.element.android.libraries.di.SessionScope
+import io.element.android.libraries.matrix.api.core.DirectChatTarget
 import io.element.android.libraries.matrix.api.core.toRoomIdOrAlias
 import io.element.android.services.analytics.api.AnalyticsService
+import timber.log.Timber
 
 @ContributesNode(SessionScope::class)
 @AssistedInject
@@ -54,7 +56,14 @@ class StartChatNode(
             onCloseClick = this::navigateUp,
             onNewRoomClick = navigator::onCreateNewRoom,
             onOpenDM = {
-                navigator.onRoomCreated(roomIdOrAlias = it.toRoomIdOrAlias(), serverNames = emptyList())
+                when (it) {
+                    is DirectChatTarget.Room -> {
+                        navigator.onRoomCreated(roomIdOrAlias = it.roomId.toRoomIdOrAlias(), serverNames = emptyList())
+                    }
+                    is DirectChatTarget.LocalDm -> {
+                        Timber.w("Local DM target is not wired to navigation yet for user %s", it.userId)
+                    }
+                }
             },
             onJoinByAddressClick = navigator::onShowJoinRoomByAddress,
             onInviteFriendsClick = { invitePeople(activity) },

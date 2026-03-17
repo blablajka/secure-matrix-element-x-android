@@ -25,6 +25,7 @@ import io.element.android.features.userprofile.impl.root.UserProfilePresenter
 import io.element.android.libraries.architecture.AsyncAction
 import io.element.android.libraries.architecture.AsyncData
 import io.element.android.libraries.matrix.api.MatrixClient
+import io.element.android.libraries.matrix.api.core.DirectChatTarget
 import io.element.android.libraries.matrix.api.core.RoomId
 import io.element.android.libraries.matrix.api.core.UserId
 import io.element.android.libraries.matrix.api.encryption.identity.IdentityState
@@ -268,7 +269,7 @@ class UserProfilePresenterTest {
     @Test
     fun `present - start DM action failure scenario`() = runTest {
         val startDMFailureResult = AsyncAction.Failure(AN_EXCEPTION)
-        val executeResult = lambdaRecorder<MatrixUser, Boolean, MutableState<AsyncAction<RoomId>>, Unit> { _, _, actionState ->
+        val executeResult = lambdaRecorder<MatrixUser, Boolean, MutableState<AsyncAction<DirectChatTarget>>, Unit> { _, _, actionState ->
             actionState.value = startDMFailureResult
         }
         val startDMAction = FakeStartDMAction(executeResult = executeResult)
@@ -297,8 +298,8 @@ class UserProfilePresenterTest {
 
     @Test
     fun `present - start DM action success scenario`() = runTest {
-        val startDMSuccessResult = AsyncAction.Success(A_ROOM_ID)
-        val executeResult = lambdaRecorder<MatrixUser, Boolean, MutableState<AsyncAction<RoomId>>, Unit> { _, _, actionState ->
+        val startDMSuccessResult = AsyncAction.Success(DirectChatTarget.Room(A_ROOM_ID))
+        val executeResult = lambdaRecorder<MatrixUser, Boolean, MutableState<AsyncAction<DirectChatTarget>>, Unit> { _, _, actionState ->
             actionState.value = startDMSuccessResult
         }
         val startDMAction = FakeStartDMAction(executeResult = executeResult)
@@ -325,7 +326,7 @@ class UserProfilePresenterTest {
     fun `present - start DM action confirmation scenario - cancel`() = runTest {
         val matrixUser = MatrixUser(UserId("@alice:server.org"))
         val startDMConfirmationResult = ConfirmingStartDmWithMatrixUser(matrixUser)
-        val executeResult = lambdaRecorder<MatrixUser, Boolean, MutableState<AsyncAction<RoomId>>, Unit> { _, _, actionState ->
+        val executeResult = lambdaRecorder<MatrixUser, Boolean, MutableState<AsyncAction<DirectChatTarget>>, Unit> { _, _, actionState ->
             actionState.value = startDMConfirmationResult
         }
         val startDMAction = FakeStartDMAction(executeResult = executeResult)
@@ -355,7 +356,7 @@ class UserProfilePresenterTest {
     fun `present - start DM action confirmation scenario - confirm`() = runTest {
         val matrixUser = MatrixUser(UserId("@alice:server.org"))
         val startDMConfirmationResult = ConfirmingStartDmWithMatrixUser(matrixUser)
-        val executeResult = lambdaRecorder<MatrixUser, Boolean, MutableState<AsyncAction<RoomId>>, Unit> { _, _, actionState ->
+        val executeResult = lambdaRecorder<MatrixUser, Boolean, MutableState<AsyncAction<DirectChatTarget>>, Unit> { _, _, actionState ->
             actionState.value = startDMConfirmationResult
         }
         val startDMAction = FakeStartDMAction(executeResult = executeResult)

@@ -12,6 +12,7 @@ import android.content.Context
 import io.element.android.libraries.androidutils.R
 import io.element.android.libraries.androidutils.system.startSharePlainTextIntent
 import io.element.android.libraries.architecture.NodeInputs
+import io.element.android.libraries.matrix.api.core.DirectChatTarget
 import io.element.android.libraries.matrix.api.core.RoomId
 import io.element.android.libraries.matrix.api.core.UserId
 import io.element.android.libraries.matrix.api.notification.CallIntent
@@ -24,7 +25,7 @@ class UserProfileNodeHelper(
 ) {
     interface Callback : NodeInputs {
         fun navigateToAvatarPreview(username: String, avatarUrl: String)
-        fun navigateToRoom(roomId: RoomId)
+        fun navigateToDirectChat(target: DirectChatTarget)
         fun startCall(dmRoomId: RoomId, callIntent: CallIntent)
         fun startVerifyUserFlow(userId: UserId)
     }

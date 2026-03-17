@@ -10,12 +10,12 @@ package io.element.android.features.startchat.impl.root
 
 import io.element.android.features.startchat.impl.userlist.UserListState
 import io.element.android.libraries.architecture.AsyncAction
-import io.element.android.libraries.matrix.api.core.RoomId
+import io.element.android.libraries.matrix.api.core.DirectChatTarget
 
 data class StartChatState(
     val applicationName: String,
     val userListState: UserListState,
-    val startDmAction: AsyncAction<RoomId>,
+    val startDmAction: AsyncAction<DirectChatTarget>,
     val isRoomDirectorySearchEnabled: Boolean,
     val eventSink: (StartChatEvents) -> Unit,
 )

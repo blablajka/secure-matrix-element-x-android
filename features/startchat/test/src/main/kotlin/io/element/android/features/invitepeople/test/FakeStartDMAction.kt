@@ -11,19 +11,19 @@ package io.element.android.features.invitepeople.test
 import androidx.compose.runtime.MutableState
 import io.element.android.features.startchat.api.StartDMAction
 import io.element.android.libraries.architecture.AsyncAction
-import io.element.android.libraries.matrix.api.core.RoomId
+import io.element.android.libraries.matrix.api.core.DirectChatTarget
 import io.element.android.libraries.matrix.api.user.MatrixUser
 import io.element.android.tests.testutils.lambda.lambdaError
 
 class FakeStartDMAction(
-    private val executeResult: (MatrixUser, Boolean, MutableState<AsyncAction<RoomId>>) -> Unit = { _, _, _ ->
+    private val executeResult: (MatrixUser, Boolean, MutableState<AsyncAction<DirectChatTarget>>) -> Unit = { _, _, _ ->
         lambdaError()
     }
 ) : StartDMAction {
     override suspend fun execute(
         matrixUser: MatrixUser,
         createIfDmDoesNotExist: Boolean,
-        actionState: MutableState<AsyncAction<RoomId>>,
+        actionState: MutableState<AsyncAction<DirectChatTarget>>,
     ) {
         executeResult(matrixUser, createIfDmDoesNotExist, actionState)
     }

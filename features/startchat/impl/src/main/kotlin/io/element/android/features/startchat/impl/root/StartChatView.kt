@@ -42,7 +42,7 @@ import io.element.android.libraries.designsystem.theme.components.ListSectionHea
 import io.element.android.libraries.designsystem.theme.components.Scaffold
 import io.element.android.libraries.designsystem.theme.components.Text
 import io.element.android.libraries.designsystem.theme.components.TopAppBar
-import io.element.android.libraries.matrix.api.core.RoomId
+import io.element.android.libraries.matrix.api.core.DirectChatTarget
 import io.element.android.libraries.matrix.ui.components.CreateDmConfirmationBottomSheet
 import io.element.android.libraries.matrix.ui.components.MatrixUserRow
 import io.element.android.libraries.ui.strings.CommonStrings
@@ -53,7 +53,7 @@ fun StartChatView(
     state: StartChatState,
     onCloseClick: () -> Unit,
     onNewRoomClick: () -> Unit,
-    onOpenDM: (RoomId) -> Unit,
+    onOpenDM: (DirectChatTarget) -> Unit,
     onInviteFriendsClick: () -> Unit,
     onJoinByAddressClick: () -> Unit,
     onRoomDirectorySearchClick: () -> Unit,
@@ -154,7 +154,7 @@ private fun CreateRoomActionButtonsList(
     onInvitePeopleClick: () -> Unit,
     onJoinByAddressClick: () -> Unit,
     onRoomDirectorySearchClick: () -> Unit,
-    onDmClick: (RoomId) -> Unit,
+    onDmClick: (DirectChatTarget) -> Unit,
 ) {
     LazyColumn {
         item {
@@ -199,7 +199,7 @@ private fun CreateRoomActionButtonsList(
                     MatrixUserRow(
                         modifier = Modifier.clickable(
                             onClick = {
-                                onDmClick(recentDirectRoom.roomId)
+                                onDmClick(DirectChatTarget.Room(recentDirectRoom.roomId))
                             }
                         ),
                         matrixUser = recentDirectRoom.matrixUser,

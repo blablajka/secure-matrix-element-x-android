@@ -26,7 +26,7 @@ import io.element.android.libraries.architecture.Presenter
 import io.element.android.libraries.core.meta.BuildMeta
 import io.element.android.libraries.featureflag.api.FeatureFlagService
 import io.element.android.libraries.featureflag.api.FeatureFlags
-import io.element.android.libraries.matrix.api.core.RoomId
+import io.element.android.libraries.matrix.api.core.DirectChatTarget
 import io.element.android.libraries.usersearch.api.UserRepository
 import kotlinx.coroutines.launch
 
@@ -52,7 +52,7 @@ class StartChatPresenter(
         val userListState = presenter.present()
 
         val localCoroutineScope = rememberCoroutineScope()
-        val startDmActionState: MutableState<AsyncAction<RoomId>> = remember { mutableStateOf(AsyncAction.Uninitialized) }
+        val startDmActionState: MutableState<AsyncAction<DirectChatTarget>> = remember { mutableStateOf(AsyncAction.Uninitialized) }
 
         val isRoomDirectorySearchEnabled by remember {
             featureFlagService.isFeatureEnabledFlow(FeatureFlags.RoomDirectorySearch)

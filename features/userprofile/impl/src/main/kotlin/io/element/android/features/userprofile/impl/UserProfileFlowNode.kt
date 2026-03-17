@@ -33,6 +33,7 @@ import io.element.android.libraries.architecture.createNode
 import io.element.android.libraries.architecture.inputs
 import io.element.android.libraries.di.SessionScope
 import io.element.android.libraries.matrix.api.core.EventId
+import io.element.android.libraries.matrix.api.core.DirectChatTarget
 import io.element.android.libraries.matrix.api.core.RoomId
 import io.element.android.libraries.matrix.api.core.SessionId
 import io.element.android.libraries.matrix.api.core.UserId
@@ -40,6 +41,7 @@ import io.element.android.libraries.matrix.api.notification.CallIntent
 import io.element.android.libraries.matrix.api.verification.VerificationRequest
 import io.element.android.libraries.mediaviewer.api.MediaViewerEntryPoint
 import kotlinx.parcelize.Parcelize
+import timber.log.Timber
 
 @ContributesNode(SessionScope::class)
 @AssistedInject
@@ -80,8 +82,11 @@ class UserProfileFlowNode(
                         backstack.push(NavTarget.AvatarPreview(username, avatarUrl))
                     }
 
-                    override fun navigateToRoom(roomId: RoomId) {
-                        callback.navigateToRoom(roomId)
+                    override fun navigateToDirectChat(target: DirectChatTarget) {
+                        when (target) {
+                            is DirectChatTarget.Room -> callback.navigateToDirectChat(target)
+                            is DirectChatTarget.LocalDm -> Timber.w("Local DM target is not wired to flow navigation yet for user %s", target.userId)
+                        }
                     }
 
                     override fun startCall(dmRoomId: RoomId, callIntent: CallIntent) {

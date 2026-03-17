@@ -15,7 +15,7 @@ import io.element.android.features.startchat.impl.userlist.aRecentDirectRoomList
 import io.element.android.features.startchat.impl.userlist.aUserListState
 import io.element.android.libraries.architecture.AsyncAction
 import io.element.android.libraries.designsystem.theme.components.SearchBarResultState
-import io.element.android.libraries.matrix.api.core.RoomId
+import io.element.android.libraries.matrix.api.core.DirectChatTarget
 import io.element.android.libraries.matrix.ui.components.aMatrixUser
 import io.element.android.libraries.usersearch.api.UserSearchResult
 import kotlinx.collections.immutable.persistentListOf
@@ -63,7 +63,7 @@ open class StartChatStateProvider : PreviewParameterProvider<StartChatState> {
 fun aCreateRoomRootState(
     applicationName: String = "Element X Preview",
     userListState: UserListState = aUserListState(),
-    startDmAction: AsyncAction<RoomId> = AsyncAction.Uninitialized,
+    startDmAction: AsyncAction<DirectChatTarget> = AsyncAction.Uninitialized,
     isRoomDirectorySearchEnabled: Boolean = false,
     eventSink: (StartChatEvents) -> Unit = {},
 ) = StartChatState(

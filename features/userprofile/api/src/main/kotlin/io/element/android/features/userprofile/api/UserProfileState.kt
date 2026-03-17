@@ -11,6 +11,7 @@ package io.element.android.features.userprofile.api
 import io.element.android.libraries.architecture.AsyncAction
 import io.element.android.libraries.architecture.AsyncData
 import io.element.android.libraries.designsystem.utils.snackbar.SnackbarMessage
+import io.element.android.libraries.matrix.api.core.DirectChatTarget
 import io.element.android.libraries.matrix.api.core.RoomId
 import io.element.android.libraries.matrix.api.core.UserId
 
@@ -20,7 +21,7 @@ data class UserProfileState(
     val avatarUrl: String?,
     val verificationState: UserProfileVerificationState,
     val isBlocked: AsyncData<Boolean>,
-    val startDmActionState: AsyncAction<RoomId>,
+    val startDmActionState: AsyncAction<DirectChatTarget>,
     val displayConfirmationDialog: ConfirmationDialog?,
     val isCurrentUser: Boolean,
     val dmRoomId: RoomId?,

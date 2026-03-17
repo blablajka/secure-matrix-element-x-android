@@ -10,7 +10,7 @@ package io.element.android.features.startchat.api
 
 import androidx.compose.runtime.MutableState
 import io.element.android.libraries.architecture.AsyncAction
-import io.element.android.libraries.matrix.api.core.RoomId
+import io.element.android.libraries.matrix.api.core.DirectChatTarget
 import io.element.android.libraries.matrix.api.user.MatrixUser
 
 interface StartDMAction {
@@ -24,6 +24,6 @@ interface StartDMAction {
     suspend fun execute(
         matrixUser: MatrixUser,
         createIfDmDoesNotExist: Boolean,
-        actionState: MutableState<AsyncAction<RoomId>>,
+        actionState: MutableState<AsyncAction<DirectChatTarget>>,
     )
 }

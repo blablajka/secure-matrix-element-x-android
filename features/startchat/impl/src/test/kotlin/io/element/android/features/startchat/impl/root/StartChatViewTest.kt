@@ -17,7 +17,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import io.element.android.features.startchat.impl.R
 import io.element.android.features.startchat.impl.userlist.aRecentDirectRoomList
 import io.element.android.features.startchat.impl.userlist.aUserListState
-import io.element.android.libraries.matrix.api.core.RoomId
+import io.element.android.libraries.matrix.api.core.DirectChatTarget
 import io.element.android.libraries.matrix.ui.model.getBestName
 import io.element.android.libraries.ui.strings.CommonStrings
 import io.element.android.tests.testutils.EnsureNeverCalled
@@ -89,7 +89,7 @@ class StartChatViewTest {
         val recentDirectRoomList = aRecentDirectRoomList()
         val firstRoom = recentDirectRoomList[0]
         val eventsRecorder = EventsRecorder<StartChatEvents>(expectEvents = false)
-        ensureCalledOnceWithParam(firstRoom.roomId) {
+        ensureCalledOnceWithParam<DirectChatTarget>(DirectChatTarget.Room(firstRoom.roomId)) {
             rule.setStartChatView(
                 aCreateRoomRootState(
                     userListState = aUserListState(
@@ -138,7 +138,7 @@ private fun <R : TestRule> AndroidComposeTestRule<R, ComponentActivity>.setStart
     state: StartChatState,
     onCloseClick: () -> Unit = EnsureNeverCalled(),
     onNewRoomClick: () -> Unit = EnsureNeverCalled(),
-    onOpenDM: (RoomId) -> Unit = EnsureNeverCalledWithParam(),
+    onOpenDM: (DirectChatTarget) -> Unit = EnsureNeverCalledWithParam(),
     onInviteFriendsClick: () -> Unit = EnsureNeverCalled(),
     onJoinRoomByAddressClick: () -> Unit = EnsureNeverCalled(),
     onRoomDirectorySearchClick: () -> Unit = EnsureNeverCalled(),

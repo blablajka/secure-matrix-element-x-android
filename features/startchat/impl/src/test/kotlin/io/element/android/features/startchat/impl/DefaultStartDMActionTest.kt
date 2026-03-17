@@ -14,7 +14,7 @@ import im.vector.app.features.analytics.plan.CreatedRoom
 import io.element.android.features.startchat.api.ConfirmingStartDmWithMatrixUser
 import io.element.android.libraries.architecture.AsyncAction
 import io.element.android.libraries.matrix.api.MatrixClient
-import io.element.android.libraries.matrix.api.core.RoomId
+import io.element.android.libraries.matrix.api.core.DirectChatTarget
 import io.element.android.libraries.matrix.test.AN_EXCEPTION
 import io.element.android.libraries.matrix.test.A_ROOM_ID
 import io.element.android.libraries.matrix.test.FakeMatrixClient
@@ -32,9 +32,9 @@ class DefaultStartDMActionTest {
         }
         val analyticsService = FakeAnalyticsService()
         val action = createStartDMAction(matrixClient, analyticsService)
-        val state = mutableStateOf<AsyncAction<RoomId>>(AsyncAction.Uninitialized)
+        val state = mutableStateOf<AsyncAction<DirectChatTarget>>(AsyncAction.Uninitialized)
         action.execute(aMatrixUser(), true, state)
-        assertThat(state.value).isEqualTo(AsyncAction.Success(A_ROOM_ID))
+        assertThat(state.value).isEqualTo(AsyncAction.Success(DirectChatTarget.Room(A_ROOM_ID)))
         assertThat(analyticsService.capturedEvents).isEmpty()
     }
 
@@ -45,7 +45,7 @@ class DefaultStartDMActionTest {
         }
         val analyticsService = FakeAnalyticsService()
         val action = createStartDMAction(matrixClient, analyticsService)
-        val state = mutableStateOf<AsyncAction<RoomId>>(AsyncAction.Uninitialized)
+        val state = mutableStateOf<AsyncAction<DirectChatTarget>>(AsyncAction.Uninitialized)
         action.execute(aMatrixUser(), true, state)
         assertThat(state.value).isEqualTo(AsyncAction.Failure(AN_EXCEPTION))
         assertThat(analyticsService.capturedEvents).isEmpty()
@@ -59,9 +59,9 @@ class DefaultStartDMActionTest {
         }
         val analyticsService = FakeAnalyticsService()
         val action = createStartDMAction(matrixClient, analyticsService)
-        val state = mutableStateOf<AsyncAction<RoomId>>(AsyncAction.Uninitialized)
+        val state = mutableStateOf<AsyncAction<DirectChatTarget>>(AsyncAction.Uninitialized)
         action.execute(aMatrixUser(), true, state)
-        assertThat(state.value).isEqualTo(AsyncAction.Success(A_ROOM_ID))
+        assertThat(state.value).isEqualTo(AsyncAction.Success(DirectChatTarget.Room(A_ROOM_ID)))
         assertThat(analyticsService.capturedEvents).containsExactly(CreatedRoom(isDM = true))
     }
 
@@ -73,7 +73,7 @@ class DefaultStartDMActionTest {
         }
         val analyticsService = FakeAnalyticsService()
         val action = createStartDMAction(matrixClient, analyticsService)
-        val state = mutableStateOf<AsyncAction<RoomId>>(AsyncAction.Uninitialized)
+        val state = mutableStateOf<AsyncAction<DirectChatTarget>>(AsyncAction.Uninitialized)
         val matrixUser = aMatrixUser()
         action.execute(matrixUser, false, state)
         assertThat(state.value).isEqualTo(ConfirmingStartDmWithMatrixUser(matrixUser))
@@ -88,7 +88,7 @@ class DefaultStartDMActionTest {
         }
         val analyticsService = FakeAnalyticsService()
         val action = createStartDMAction(matrixClient, analyticsService)
-        val state = mutableStateOf<AsyncAction<RoomId>>(AsyncAction.Uninitialized)
+        val state = mutableStateOf<AsyncAction<DirectChatTarget>>(AsyncAction.Uninitialized)
         action.execute(aMatrixUser(), true, state)
         assertThat(state.value).isEqualTo(AsyncAction.Failure(AN_EXCEPTION))
         assertThat(analyticsService.capturedEvents).isEmpty()

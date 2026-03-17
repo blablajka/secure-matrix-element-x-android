@@ -24,6 +24,7 @@ import io.element.android.features.userprofile.shared.UserProfileView
 import io.element.android.libraries.architecture.NodeInputs
 import io.element.android.libraries.architecture.inputs
 import io.element.android.libraries.di.RoomScope
+import io.element.android.libraries.matrix.api.core.DirectChatTarget
 import io.element.android.libraries.matrix.api.core.RoomId
 import io.element.android.libraries.matrix.api.core.UserId
 import io.element.android.libraries.matrix.api.notification.CallIntent
@@ -64,8 +65,8 @@ class RoomMemberDetailsNode(
             userProfileNodeHelper.onShareUser(context, permalinkBuilder)
         }
 
-        fun navigateToRoom(roomId: RoomId) {
-            callback.navigateToRoom(roomId)
+        fun navigateToDirectChat(target: DirectChatTarget) {
+            callback.navigateToDirectChat(target)
         }
 
         fun onStartCall(roomId: RoomId, callIntent: CallIntent) {
@@ -79,7 +80,7 @@ class RoomMemberDetailsNode(
             modifier = modifier,
             goBack = this::navigateUp,
             onShareUser = ::onShareUser,
-            onOpenDm = ::navigateToRoom,
+            onOpenDm = ::navigateToDirectChat,
             onStartCall = ::onStartCall,
             openAvatarPreview = callback::navigateToAvatarPreview,
             onVerifyClick = callback::startVerifyUserFlow,

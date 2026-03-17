@@ -16,7 +16,7 @@ import io.element.android.features.startchat.api.StartDMAction
 import io.element.android.libraries.architecture.AsyncAction
 import io.element.android.libraries.di.SessionScope
 import io.element.android.libraries.matrix.api.MatrixClient
-import io.element.android.libraries.matrix.api.core.RoomId
+import io.element.android.libraries.matrix.api.core.DirectChatTarget
 import io.element.android.libraries.matrix.api.room.StartDMResult
 import io.element.android.libraries.matrix.api.room.startDM
 import io.element.android.libraries.matrix.api.user.MatrixUser
@@ -30,7 +30,7 @@ class DefaultStartDMAction(
     override suspend fun execute(
         matrixUser: MatrixUser,
         createIfDmDoesNotExist: Boolean,
-        actionState: MutableState<AsyncAction<RoomId>>,
+        actionState: MutableState<AsyncAction<DirectChatTarget>>,
     ) {
         actionState.value = AsyncAction.Loading
         when (val result = matrixClient.startDM(matrixUser.userId, createIfDmDoesNotExist)) {
@@ -38,7 +38,7 @@ class DefaultStartDMAction(
                 if (result.isNew) {
                     analyticsService.capture(CreatedRoom(isDM = true))
                 }
-                actionState.value = AsyncAction.Success(result.roomId)
+                actionState.value = AsyncAction.Success(DirectChatTarget.Room(result.roomId))
             }
             is StartDMResult.Failure -> {
                 actionState.value = AsyncAction.Failure(result.throwable)

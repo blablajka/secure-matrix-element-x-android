@@ -41,6 +41,7 @@ import io.element.android.libraries.designsystem.theme.components.Text
 import io.element.android.libraries.designsystem.theme.components.TopAppBar
 import io.element.android.libraries.designsystem.utils.snackbar.SnackbarHost
 import io.element.android.libraries.designsystem.utils.snackbar.rememberSnackbarHostState
+import io.element.android.libraries.matrix.api.core.DirectChatTarget
 import io.element.android.libraries.matrix.api.core.RoomId
 import io.element.android.libraries.matrix.api.core.UserId
 import io.element.android.libraries.matrix.api.notification.CallIntent
@@ -52,7 +53,7 @@ import io.element.android.libraries.ui.strings.CommonStrings
 fun UserProfileView(
     state: UserProfileState,
     onShareUser: () -> Unit,
-    onOpenDm: (RoomId) -> Unit,
+    onOpenDm: (DirectChatTarget) -> Unit,
     onStartCall: (RoomId, CallIntent) -> Unit,
     goBack: () -> Unit,
     openAvatarPreview: (username: String, url: String) -> Unit,

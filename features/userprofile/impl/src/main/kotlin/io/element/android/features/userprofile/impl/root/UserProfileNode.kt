@@ -24,7 +24,7 @@ import io.element.android.features.userprofile.shared.UserProfileView
 import io.element.android.libraries.architecture.NodeInputs
 import io.element.android.libraries.architecture.inputs
 import io.element.android.libraries.di.SessionScope
-import io.element.android.libraries.matrix.api.core.RoomId
+import io.element.android.libraries.matrix.api.core.DirectChatTarget
 import io.element.android.libraries.matrix.api.core.UserId
 import io.element.android.libraries.matrix.api.permalink.PermalinkBuilder
 import io.element.android.services.analytics.api.AnalyticsService
@@ -63,8 +63,8 @@ class UserProfileNode(
             userProfileNodeHelper.onShareUser(context, permalinkBuilder)
         }
 
-        fun onStartDM(roomId: RoomId) {
-            callback.navigateToRoom(roomId)
+        fun onStartDM(target: DirectChatTarget) {
+            callback.navigateToDirectChat(target)
         }
 
         val state = presenter.present()

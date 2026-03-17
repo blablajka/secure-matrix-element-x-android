@@ -51,6 +51,7 @@ import io.element.android.libraries.architecture.overlay.operation.hide
 import io.element.android.libraries.architecture.overlay.operation.show
 import io.element.android.libraries.designsystem.utils.OpenUrlInTabView
 import io.element.android.libraries.di.RoomScope
+import io.element.android.libraries.matrix.api.core.DirectChatTarget
 import io.element.android.libraries.matrix.api.core.EventId
 import io.element.android.libraries.matrix.api.core.RoomId
 import io.element.android.libraries.matrix.api.core.UserId
@@ -282,8 +283,11 @@ class RoomDetailsFlowNode(
                         overlay.show(NavTarget.AvatarPreview(username, avatarUrl))
                     }
 
-                    override fun navigateToRoom(roomId: RoomId) {
-                        callback.navigateToRoom(roomId, emptyList())
+                    override fun navigateToDirectChat(target: DirectChatTarget) {
+                        when (target) {
+                            is DirectChatTarget.Room -> callback.navigateToRoom(target.roomId, emptyList())
+                            is DirectChatTarget.LocalDm -> Unit
+                        }
                     }
 
                     override fun startCall(dmRoomId: RoomId, callIntent: CallIntent) {

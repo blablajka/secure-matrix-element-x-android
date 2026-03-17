@@ -15,7 +15,7 @@ import com.google.common.truth.Truth.assertThat
 import io.element.android.features.call.test.FakeElementCallEntryPoint
 import io.element.android.features.userprofile.api.UserProfileEntryPoint
 import io.element.android.features.verifysession.test.FakeOutgoingVerificationEntryPoint
-import io.element.android.libraries.matrix.api.core.RoomId
+import io.element.android.libraries.matrix.api.core.DirectChatTarget
 import io.element.android.libraries.matrix.test.A_SESSION_ID
 import io.element.android.libraries.matrix.test.A_USER_ID
 import io.element.android.libraries.mediaviewer.test.FakeMediaViewerEntryPoint
@@ -46,7 +46,7 @@ class DefaultUserProfileEntryPointTest {
             )
         }
         val callback = object : UserProfileEntryPoint.Callback {
-            override fun navigateToRoom(roomId: RoomId) {
+            override fun navigateToDirectChat(target: DirectChatTarget) {
                 lambdaError()
             }
         }

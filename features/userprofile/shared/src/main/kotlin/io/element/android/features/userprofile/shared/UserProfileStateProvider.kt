@@ -16,6 +16,7 @@ import io.element.android.features.userprofile.api.UserProfileVerificationState
 import io.element.android.libraries.architecture.AsyncAction
 import io.element.android.libraries.architecture.AsyncData
 import io.element.android.libraries.designsystem.utils.snackbar.SnackbarMessage
+import io.element.android.libraries.matrix.api.core.DirectChatTarget
 import io.element.android.libraries.matrix.api.core.RoomId
 import io.element.android.libraries.matrix.api.core.UserId
 import io.element.android.libraries.matrix.ui.components.aMatrixUser
@@ -42,7 +43,7 @@ fun aUserProfileState(
     avatarUrl: String? = null,
     isBlocked: AsyncData<Boolean> = AsyncData.Success(false),
     verificationState: UserProfileVerificationState = UserProfileVerificationState.UNVERIFIED,
-    startDmActionState: AsyncAction<RoomId> = AsyncAction.Uninitialized,
+    startDmActionState: AsyncAction<DirectChatTarget> = AsyncAction.Uninitialized,
     displayConfirmationDialog: UserProfileState.ConfirmationDialog? = null,
     isCurrentUser: Boolean = false,
     dmRoomId: RoomId? = null,

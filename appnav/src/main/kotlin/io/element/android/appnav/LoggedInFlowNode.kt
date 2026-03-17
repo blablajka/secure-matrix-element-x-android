@@ -78,6 +78,7 @@ import io.element.android.libraries.designsystem.utils.snackbar.SnackbarDispatch
 import io.element.android.libraries.di.SessionScope
 import io.element.android.libraries.di.annotations.SessionCoroutineScope
 import io.element.android.libraries.matrix.api.MatrixClient
+import io.element.android.libraries.matrix.api.core.DirectChatTarget
 import io.element.android.libraries.matrix.api.core.EventId
 import io.element.android.libraries.matrix.api.core.RoomId
 import io.element.android.libraries.matrix.api.core.RoomIdOrAlias
@@ -434,9 +435,14 @@ class LoggedInFlowNode(
             }
             is NavTarget.UserProfile -> {
                 val callback = object : UserProfileEntryPoint.Callback {
-                    override fun navigateToRoom(roomId: RoomId) {
-                        lifecycleScope.launch {
-                            attachRoom(roomIdOrAlias = roomId.toRoomIdOrAlias(), clearBackstack = false)
+                    override fun navigateToDirectChat(target: DirectChatTarget) {
+                        when (target) {
+                            is DirectChatTarget.Room -> {
+                                lifecycleScope.launch {
+                                    attachRoom(roomIdOrAlias = target.roomId.toRoomIdOrAlias(), clearBackstack = false)
+                                }
+                            }
+                            is DirectChatTarget.LocalDm -> Unit
                         }
                     }
                 }
