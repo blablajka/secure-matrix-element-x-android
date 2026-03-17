@@ -13,6 +13,7 @@ import com.google.common.truth.Truth.assertThat
 import io.element.android.features.messages.impl.FakeMessagesNavigator
 import io.element.android.features.messages.impl.crypto.sendfailure.resolve.aResolveVerifiedUserSendFailureState
 import io.element.android.features.messages.impl.fixtures.aMessageEvent
+import io.element.android.features.messages.impl.localdm.LocalOnlyModeApi
 import io.element.android.features.messages.impl.fixtures.aTimelineItemsFactoryCreator
 import io.element.android.features.messages.impl.timeline.components.MessageShieldData
 import io.element.android.features.messages.impl.timeline.components.aCriticalShield
@@ -253,6 +254,57 @@ class TimelinePresenterTest {
                 .isCalledOnce()
                 .with(any(), value(ReceiptType.READ_PRIVATE))
             cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `present - local-only mode disables sending read receipts`() = runTest(StandardTestDispatcher()) {
+        val markAsReadResult = lambdaRecorder<ReceiptType, Result<Unit>> { Result.success(Unit) }
+        val sendReadReceiptLambda = lambdaRecorder<EventId, ReceiptType, Result<Unit>> { _, _ -> Result.success(Unit) }
+        val timeline = FakeTimeline(
+            timelineItems = flowOf(
+                listOf(
+                    MatrixTimelineItem.Event(A_UNIQUE_ID, anEventTimelineItem()),
+                    MatrixTimelineItem.Event(
+                        uniqueId = A_UNIQUE_ID_2,
+                        event = anEventTimelineItem(eventId = AN_EVENT_ID_2, content = aMessageContent("Test message"))
+                    )
+                )
+            ),
+            markAsReadResult = markAsReadResult,
+            sendReadReceiptLambda = sendReadReceiptLambda,
+        )
+        val presenter = createTimelinePresenter(
+            timeline = timeline,
+            localOnlyModeApi = LocalOnlyModeApi { Result.success(true) },
+        )
+
+        presenter.test {
+            val initialState = awaitFirstItem()
+            advanceUntilIdle()
+            initialState.eventSink.invoke(TimelineEvent.OnScrollFinished(0))
+            initialState.eventSink.invoke(TimelineEvent.OnScrollFinished(1))
+            advanceUntilIdle()
+            assert(markAsReadResult).isNeverCalled()
+            assert(sendReadReceiptLambda).isNeverCalled()
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `present - local-only mode hides read receipts in state`() = runTest {
+        val presenter = createTimelinePresenter(
+            sessionPreferencesStore = InMemorySessionPreferencesStore(isRenderReadReceiptsEnabled = true),
+            localOnlyModeApi = LocalOnlyModeApi { Result.success(true) },
+        )
+
+        presenter.test {
+            val initialState = awaitFirstItem()
+            advanceUntilIdle()
+            assertThat(initialState.renderReadReceipts).isTrue()
+            awaitItem().also { updatedState ->
+                assertThat(updatedState.renderReadReceipts).isFalse()
+            }
         }
     }
 
@@ -1012,6 +1064,7 @@ class TimelinePresenterTest {
         sessionPreferencesStore: InMemorySessionPreferencesStore = InMemorySessionPreferencesStore(),
         timelineItemIndexer: TimelineItemIndexer = TimelineItemIndexer(),
         featureFlagService: FakeFeatureFlagService = FakeFeatureFlagService(),
+        localOnlyModeApi: LocalOnlyModeApi = LocalOnlyModeApi { Result.success(false) },
     ): TimelinePresenter {
         return TimelinePresenter(
             timelineItemsFactoryCreator = aTimelineItemsFactoryCreator(),
@@ -1023,6 +1076,7 @@ class TimelinePresenterTest {
             endPollAction = endPollAction,
             sendPollResponseAction = sendPollResponseAction,
             sessionPreferencesStore = sessionPreferencesStore,
+            localOnlyModeApi = localOnlyModeApi,
             timelineItemIndexer = timelineItemIndexer,
             timelineController = TimelineController(room, timeline),
             resolveVerifiedUserSendFailurePresenter = { aResolveVerifiedUserSendFailureState() },
