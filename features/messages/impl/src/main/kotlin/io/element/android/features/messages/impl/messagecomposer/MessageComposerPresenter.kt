@@ -35,6 +35,7 @@ import io.element.android.features.messages.impl.MessagesNavigator
 import io.element.android.features.messages.impl.attachments.Attachment
 import io.element.android.features.messages.impl.attachments.preview.error.sendAttachmentError
 import io.element.android.features.messages.impl.draft.ComposerDraftService
+import io.element.android.features.messages.impl.localdm.LocalOnlyModeApi
 import io.element.android.features.messages.impl.messagecomposer.gif.TenorGif
 import io.element.android.features.messages.impl.messagecomposer.gif.TenorGifDataSource
 import io.element.android.features.messages.impl.messagecomposer.gif.TenorMediaKind
@@ -123,6 +124,7 @@ class MessageComposerPresenter(
     private val permalinkBuilder: PermalinkBuilder,
     permissionsPresenterFactory: PermissionsPresenter.Factory,
     private val draftService: ComposerDraftService,
+    private val localOnlyModeApi: LocalOnlyModeApi,
     private val tenorGifDataSource: TenorGifDataSource,
     private val mentionSpanProvider: MentionSpanProvider,
     private val pillificationHelper: TextPillificationHelper,
@@ -191,10 +193,17 @@ class MessageComposerPresenter(
         var recentGifs: List<TenorGif> by remember { mutableStateOf(emptyList()) }
         var favoriteStickers: List<TenorGif> by remember { mutableStateOf(emptyList()) }
         var isLoadingGifs: Boolean by remember { mutableStateOf(false) }
+        var isLocalOnlyMode by remember { mutableStateOf(false) }
 
         val sendTypingNotifications by remember {
             sessionPreferencesStore.isSendTypingNotificationsEnabled()
         }.collectAsState(initial = true)
+        val typingIndicatorsEnabled = sendTypingNotifications && !isLocalOnlyMode
+        val currentTypingIndicatorsEnabled by rememberUpdatedState(typingIndicatorsEnabled)
+
+        LaunchedEffect(room.sessionId.value) {
+            isLocalOnlyMode = localOnlyModeApi.isLocalOnly(room.sessionId.value).getOrDefault(false)
+        }
 
         LaunchedEffect(cameraPermissionState.permissionGranted) {
             if (cameraPermissionState.permissionGranted) {
@@ -214,7 +223,7 @@ class MessageComposerPresenter(
             // Declare that the user is not typing anymore when the composer is disposed
             onDispose {
                 sessionCoroutineScope.launch {
-                    if (sendTypingNotifications) {
+                    if (currentTypingIndicatorsEnabled) {
                         room.typingNotice(false)
                     }
                 }
@@ -423,7 +432,7 @@ class MessageComposerPresenter(
                     analyticsService.trackError(event.error)
                 }
                 is MessageComposerEvent.TypingNotice -> {
-                    if (sendTypingNotifications) {
+                    if (typingIndicatorsEnabled) {
                         localCoroutineScope.launch {
                             room.typingNotice(event.isTyping)
                         }

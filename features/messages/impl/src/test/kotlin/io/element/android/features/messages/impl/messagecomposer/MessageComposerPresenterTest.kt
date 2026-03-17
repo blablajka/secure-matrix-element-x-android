@@ -26,6 +26,7 @@ import io.element.android.features.messages.impl.MessagesNavigator
 import io.element.android.features.messages.impl.attachments.Attachment
 import io.element.android.features.messages.impl.draft.ComposerDraftService
 import io.element.android.features.messages.impl.draft.FakeComposerDraftService
+import io.element.android.features.messages.impl.localdm.LocalOnlyModeApi
 import io.element.android.features.messages.impl.messagecomposer.gif.ImportedTenorMedia
 import io.element.android.features.messages.impl.messagecomposer.gif.TenorGif
 import io.element.android.features.messages.impl.messagecomposer.gif.TenorGifDataSource
@@ -1351,6 +1352,27 @@ class MessageComposerPresenterTest {
     }
 
     @Test
+    fun `present - handle typing notice event when homeserver is local-only`() = runTest {
+        val typingNoticeResult = lambdaRecorder<Boolean, Result<Unit>> { Result.success(Unit) }
+        val room = FakeJoinedRoom(
+            typingNoticeResult = typingNoticeResult
+        )
+        val presenter = createPresenter(
+            room = room,
+            localOnlyModeApi = LocalOnlyModeApi { Result.success(true) },
+        )
+        presenter.test {
+            val initialState = awaitFirstItem()
+            advanceUntilIdle()
+            typingNoticeResult.assertions().isNeverCalled()
+            initialState.eventSink.invoke(MessageComposerEvent.TypingNotice(true))
+            initialState.eventSink.invoke(MessageComposerEvent.TypingNotice(false))
+            advanceUntilIdle()
+            typingNoticeResult.assertions().isNeverCalled()
+        }
+    }
+
+    @Test
     fun `present - when there is no draft, nothing is restored`() = runTest {
         val loadDraftLambda = lambdaRecorder<RoomId, ThreadId?, Boolean, ComposerDraft?> { _, _, _ -> null }
         val composerDraftService = FakeComposerDraftService().apply {
@@ -1636,6 +1658,7 @@ class MessageComposerPresenterTest {
         textPillificationHelper: TextPillificationHelper = FakeTextPillificationHelper(),
         isRichTextEditorEnabled: Boolean = true,
         draftService: ComposerDraftService = FakeComposerDraftService(),
+        localOnlyModeApi: LocalOnlyModeApi = LocalOnlyModeApi { Result.success(false) },
         tenorGifDataSource: TenorGifDataSource = this@MessageComposerPresenterTest.tenorGifDataSource,
         mediaOptimizationConfigProvider: FakeMediaOptimizationConfigProvider = FakeMediaOptimizationConfigProvider(),
     ) = MessageComposerPresenter(
@@ -1669,6 +1692,7 @@ class MessageComposerPresenterTest {
         permalinkBuilder = permalinkBuilder,
         timelineController = TimelineController(room, timeline),
         draftService = draftService,
+        localOnlyModeApi = localOnlyModeApi,
         tenorGifDataSource = tenorGifDataSource,
         mentionSpanProvider = mentionSpanProvider,
         pillificationHelper = textPillificationHelper,

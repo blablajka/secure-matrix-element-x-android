@@ -100,7 +100,7 @@ class DefaultTenorGifDataSource(
             path = "/_synapse/client/localmedia/tenor/import",
         )
         val requestBody = JSONObject().apply {
-            put("media_url", gif.mediaUrl)
+            put("media_token", gif.mediaUrl)
             put("title", gif.safeTitle())
         }
         val responseJson = executeJsonRequest(

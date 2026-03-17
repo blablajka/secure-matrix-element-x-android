@@ -78,7 +78,7 @@ class TenorGifDataSourceTest {
 
         val importRequest = interceptor.recordedRequests.single { it.url.contains("/tenor/import") }
         assertThat(importRequest.authorization).isEqualTo("Bearer $accessToken")
-        assertThat(importRequest.body).contains("\"media_url\":\"opaque-media-token\"")
+        assertThat(importRequest.body).contains("\"media_token\":\"opaque-media-token\"")
         assertThat(importRequest.body).doesNotContain("media.tenor.com")
 
         val downloadRequest = interceptor.recordedRequests.single { it.url.contains("/media/download/") }
