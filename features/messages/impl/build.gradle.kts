@@ -96,6 +96,7 @@ dependencies {
     testImplementation(projects.libraries.mediapickers.test)
     testImplementation(projects.libraries.permissions.test)
     testImplementation(projects.libraries.preferences.test)
+    testImplementation(projects.libraries.sessionStorage.test)
     testImplementation(projects.libraries.audio.test)
     testImplementation(projects.libraries.voicerecorder.test)
     testImplementation(projects.libraries.mediaplayer.test)
