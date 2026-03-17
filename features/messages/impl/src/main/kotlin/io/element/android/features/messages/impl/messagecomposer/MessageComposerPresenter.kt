@@ -35,6 +35,9 @@ import io.element.android.features.messages.impl.MessagesNavigator
 import io.element.android.features.messages.impl.attachments.Attachment
 import io.element.android.features.messages.impl.attachments.preview.error.sendAttachmentError
 import io.element.android.features.messages.impl.draft.ComposerDraftService
+import io.element.android.features.messages.impl.messagecomposer.gif.TenorGif
+import io.element.android.features.messages.impl.messagecomposer.gif.TenorGifDataSource
+import io.element.android.features.messages.impl.messagecomposer.gif.TenorMediaKind
 import io.element.android.features.messages.impl.messagecomposer.suggestions.RoomAliasSuggestionsDataSource
 import io.element.android.features.messages.impl.messagecomposer.suggestions.SuggestionsProcessor
 import io.element.android.features.messages.impl.timeline.TimelineController
@@ -120,6 +123,7 @@ class MessageComposerPresenter(
     private val permalinkBuilder: PermalinkBuilder,
     permissionsPresenterFactory: PermissionsPresenter.Factory,
     private val draftService: ComposerDraftService,
+    private val tenorGifDataSource: TenorGifDataSource,
     private val mentionSpanProvider: MentionSpanProvider,
     private val pillificationHelper: TextPillificationHelper,
     private val suggestionsProcessor: SuggestionsProcessor,
@@ -180,6 +184,13 @@ class MessageComposerPresenter(
             mutableStateOf(false)
         }
         var showAttachmentSourcePicker: Boolean by remember { mutableStateOf(false) }
+        var showGifPicker: Boolean by remember { mutableStateOf(false) }
+        var gifQuery: String by remember { mutableStateOf("") }
+        var selectedTenorTab: TenorPickerTab by remember { mutableStateOf(TenorPickerTab.Gifs) }
+        var gifResults: List<TenorGif> by remember { mutableStateOf(emptyList()) }
+        var recentGifs: List<TenorGif> by remember { mutableStateOf(emptyList()) }
+        var favoriteStickers: List<TenorGif> by remember { mutableStateOf(emptyList()) }
+        var isLoadingGifs: Boolean by remember { mutableStateOf(false) }
 
         val sendTypingNotifications by remember {
             sessionPreferencesStore.isSendTypingNotificationsEnabled()
@@ -280,6 +291,36 @@ class MessageComposerPresenter(
                     showAttachmentSourcePicker = false
                     filesPicker.launch()
                 }
+                MessageComposerEvent.PickAttachmentSource.Gif -> localCoroutineScope.launch {
+                    showAttachmentSourcePicker = false
+                    showGifPicker = true
+                    selectedTenorTab = TenorPickerTab.Gifs
+                    openTenorPicker(
+                        query = gifQuery,
+                        selectedTab = selectedTenorTab,
+                        updateFavorites = { favoriteStickers = it },
+                        updateRecent = { recentGifs = it },
+                        updateResults = { loading, items ->
+                            isLoadingGifs = loading
+                            gifResults = items
+                        }
+                    )
+                }
+                MessageComposerEvent.PickAttachmentSource.Sticker -> localCoroutineScope.launch {
+                    showAttachmentSourcePicker = false
+                    showGifPicker = true
+                    selectedTenorTab = TenorPickerTab.Stickers
+                    openTenorPicker(
+                        query = gifQuery,
+                        selectedTab = selectedTenorTab,
+                        updateFavorites = { favoriteStickers = it },
+                        updateRecent = { recentGifs = it },
+                        updateResults = { loading, items ->
+                            isLoadingGifs = loading
+                            gifResults = items
+                        }
+                    )
+                }
                 MessageComposerEvent.PickAttachmentSource.PhotoFromCamera -> localCoroutineScope.launch {
                     showAttachmentSourcePicker = false
                     if (cameraPermissionState.permissionGranted) {
@@ -305,6 +346,74 @@ class MessageComposerPresenter(
                 MessageComposerEvent.PickAttachmentSource.Poll -> {
                     showAttachmentSourcePicker = false
                     // Navigation to the create poll screen is done at the view layer
+                }
+                MessageComposerEvent.DismissGifMenu -> showGifPicker = false
+                is MessageComposerEvent.UpdateGifQuery -> gifQuery = event.query
+                is MessageComposerEvent.UpdateTenorTab -> {
+                    selectedTenorTab = event.tab
+                    localCoroutineScope.launch {
+                        loadGifs(
+                            query = gifQuery,
+                            selectedTab = selectedTenorTab,
+                            favoriteStickers = favoriteStickers,
+                        ) { loading, items ->
+                            isLoadingGifs = loading
+                            gifResults = items
+                        }
+                    }
+                }
+                MessageComposerEvent.SearchGif -> {
+                    localCoroutineScope.launch {
+                        loadGifs(
+                            query = gifQuery,
+                            selectedTab = selectedTenorTab,
+                            favoriteStickers = favoriteStickers,
+                        ) { loading, items ->
+                            isLoadingGifs = loading
+                            gifResults = items
+                        }
+                    }
+                }
+                is MessageComposerEvent.SelectGif -> {
+                    showGifPicker = false
+                    localCoroutineScope.launch {
+                        tenorGifDataSource.importMedia(room.sessionId.value, event.gif)
+                            .onSuccess { importedMedia ->
+                                if (event.gif.kind == TenorMediaKind.Gif) {
+                                    tenorGifDataSource.saveRecent(event.gif)
+                                    recentGifs = tenorGifDataSource.getRecent()
+                                }
+                                handlePickedMedia(importedMedia.uri, importedMedia.mimeType)
+                            }
+                            .onFailure { cause ->
+                                Timber.e(cause, "Failed to import tenor media")
+                                val snackbarMessage = SnackbarMessage(sendAttachmentError(cause))
+                                snackbarDispatcher.post(snackbarMessage)
+                            }
+                    }
+                }
+                is MessageComposerEvent.ToggleStickerFavorite -> {
+                    localCoroutineScope.launch {
+                        tenorGifDataSource.toggleFavoriteSticker(room.sessionId.value, event.gif)
+                            .onSuccess { updated ->
+                                favoriteStickers = updated
+                                if (selectedTenorTab == TenorPickerTab.Favorites) {
+                                    loadGifs(
+                                        query = gifQuery,
+                                        selectedTab = selectedTenorTab,
+                                        favoriteStickers = favoriteStickers,
+                                    ) { loading, items ->
+                                        isLoadingGifs = loading
+                                        gifResults = items
+                                    }
+                                }
+                            }
+                            .onFailure { cause ->
+                                Timber.e(cause, "Failed to update sticker favorites")
+                                val snackbarMessage = SnackbarMessage(sendAttachmentError(cause))
+                                snackbarDispatcher.post(snackbarMessage)
+                            }
+                    }
                 }
                 is MessageComposerEvent.ToggleTextFormatting -> {
                     showAttachmentSourcePicker = false
@@ -380,6 +489,13 @@ class MessageComposerPresenter(
             isFullScreen = isFullScreen.value,
             mode = messageComposerContext.composerMode,
             showAttachmentSourcePicker = showAttachmentSourcePicker,
+            showGifPicker = showGifPicker,
+            gifQuery = gifQuery,
+            selectedTenorTab = selectedTenorTab,
+            gifResults = gifResults.toImmutableList(),
+            recentGifs = recentGifs.toImmutableList(),
+            favoriteStickers = favoriteStickers.toImmutableList(),
+            isLoadingGifs = isLoadingGifs,
             showTextFormatting = showTextFormatting,
             canShareLocation = canShareLocation.value,
             suggestions = suggestions.toImmutableList(),
@@ -387,6 +503,63 @@ class MessageComposerPresenter(
             resolveAtRoomMentionDisplay = resolveAtRoomMentionDisplay,
             eventSink = ::handleEvent,
         )
+    }
+
+    private suspend fun openTenorPicker(
+        query: String,
+        selectedTab: TenorPickerTab,
+        updateFavorites: (List<TenorGif>) -> Unit,
+        updateRecent: (List<TenorGif>) -> Unit,
+        updateResults: (loading: Boolean, items: List<TenorGif>) -> Unit,
+    ) {
+        updateRecent(tenorGifDataSource.getRecent())
+        val favorites = tenorGifDataSource.getFavoriteStickers(room.sessionId.value).getOrElse { cause ->
+            Timber.w(cause, "Failed to load sticker favorites")
+            emptyList()
+        }
+        updateFavorites(favorites)
+        loadGifs(
+            query = query,
+            selectedTab = selectedTab,
+            favoriteStickers = favorites,
+            onResult = updateResults,
+        )
+    }
+
+    private suspend fun loadGifs(
+        query: String,
+        selectedTab: TenorPickerTab,
+        favoriteStickers: List<TenorGif>,
+        onResult: (loading: Boolean, items: List<TenorGif>) -> Unit,
+    ) {
+        onResult(true, emptyList())
+        val sessionId = room.sessionId.value
+        val request = when (selectedTab) {
+            TenorPickerTab.Gifs -> {
+                if (query.isBlank()) {
+                    tenorGifDataSource.getTrending(sessionId, TenorMediaKind.Gif)
+                } else {
+                    tenorGifDataSource.search(sessionId, TenorMediaKind.Gif, query)
+                }
+            }
+            TenorPickerTab.Stickers -> {
+                if (query.isBlank()) {
+                    tenorGifDataSource.getTrending(sessionId, TenorMediaKind.Sticker)
+                } else {
+                    tenorGifDataSource.search(sessionId, TenorMediaKind.Sticker, query)
+                }
+            }
+            TenorPickerTab.Favorites -> Result.success(
+                favoriteStickers.filter { item ->
+                    query.isBlank() || item.title.contains(query, ignoreCase = true)
+                }
+            )
+        }
+        val items = request.getOrElse { cause ->
+            Timber.w(cause, "Failed to load tenor media")
+            emptyList()
+        }
+        onResult(false, items)
     }
 
     @OptIn(FlowPreview::class)

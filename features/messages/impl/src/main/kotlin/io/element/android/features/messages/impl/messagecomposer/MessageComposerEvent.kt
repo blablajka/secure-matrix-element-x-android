@@ -9,6 +9,7 @@
 package io.element.android.features.messages.impl.messagecomposer
 
 import android.net.Uri
+import io.element.android.features.messages.impl.messagecomposer.gif.TenorGif
 import io.element.android.libraries.textcomposer.mentions.ResolvedSuggestion
 import io.element.android.libraries.textcomposer.model.MessageComposerMode
 import io.element.android.libraries.textcomposer.model.Suggestion
@@ -21,11 +22,19 @@ sealed interface MessageComposerEvent {
     data class SetMode(val composerMode: MessageComposerMode) : MessageComposerEvent
     data object AddAttachment : MessageComposerEvent
     data object DismissAttachmentMenu : MessageComposerEvent
+    data object DismissGifMenu : MessageComposerEvent
+    data class UpdateGifQuery(val query: String) : MessageComposerEvent
+    data class UpdateTenorTab(val tab: TenorPickerTab) : MessageComposerEvent
+    data object SearchGif : MessageComposerEvent
+    data class SelectGif(val gif: TenorGif) : MessageComposerEvent
+    data class ToggleStickerFavorite(val gif: TenorGif) : MessageComposerEvent
     sealed interface PickAttachmentSource : MessageComposerEvent {
         data object FromGallery : PickAttachmentSource
         data object FromFiles : PickAttachmentSource
         data object PhotoFromCamera : PickAttachmentSource
         data object VideoFromCamera : PickAttachmentSource
+        data object Gif : PickAttachmentSource
+        data object Sticker : PickAttachmentSource
         data object Location : PickAttachmentSource
         data object Poll : PickAttachmentSource
     }

@@ -122,6 +122,18 @@ private fun AttachmentSourcePickerMenu(
             headlineContent = { Text(stringResource(R.string.screen_room_attachment_source_files)) },
             style = ListItemStyle.Primary,
         )
+        ListItem(
+            modifier = Modifier.clickable { state.eventSink(MessageComposerEvent.PickAttachmentSource.Gif) },
+            leadingContent = ListItemContent.Icon(IconSource.Vector(CompoundIcons.Image())),
+            headlineContent = { Text(stringResource(R.string.screen_room_attachment_source_gif)) },
+            style = ListItemStyle.Primary,
+        )
+        ListItem(
+            modifier = Modifier.clickable { state.eventSink(MessageComposerEvent.PickAttachmentSource.Sticker) },
+            leadingContent = ListItemContent.Icon(IconSource.Vector(CompoundIcons.Favourite())),
+            headlineContent = { Text(stringResource(R.string.screen_room_attachment_source_sticker)) },
+            style = ListItemStyle.Primary,
+        )
         if (state.canShareLocation) {
             ListItem(
                 modifier = Modifier.clickable {

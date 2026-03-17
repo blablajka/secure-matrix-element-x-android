@@ -9,11 +9,18 @@
 package io.element.android.features.messages.impl.messagecomposer
 
 import androidx.compose.runtime.Stable
+import io.element.android.features.messages.impl.messagecomposer.gif.TenorGif
 import io.element.android.libraries.textcomposer.mentions.ResolvedSuggestion
 import io.element.android.libraries.textcomposer.model.MessageComposerMode
 import io.element.android.libraries.textcomposer.model.TextEditorState
 import io.element.android.wysiwyg.display.TextDisplay
 import kotlinx.collections.immutable.ImmutableList
+
+enum class TenorPickerTab {
+    Gifs,
+    Stickers,
+    Favorites,
+}
 
 @Stable
 data class MessageComposerState(
@@ -21,6 +28,13 @@ data class MessageComposerState(
     val isFullScreen: Boolean,
     val mode: MessageComposerMode,
     val showAttachmentSourcePicker: Boolean,
+    val showGifPicker: Boolean,
+    val gifQuery: String,
+    val selectedTenorTab: TenorPickerTab,
+    val gifResults: ImmutableList<TenorGif>,
+    val recentGifs: ImmutableList<TenorGif>,
+    val favoriteStickers: ImmutableList<TenorGif>,
+    val isLoadingGifs: Boolean,
     val showTextFormatting: Boolean,
     val canShareLocation: Boolean,
     val suggestions: ImmutableList<ResolvedSuggestion>,

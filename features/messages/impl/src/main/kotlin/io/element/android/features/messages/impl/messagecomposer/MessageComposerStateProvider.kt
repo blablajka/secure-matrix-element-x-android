@@ -9,6 +9,7 @@
 package io.element.android.features.messages.impl.messagecomposer
 
 import androidx.compose.ui.tooling.preview.PreviewParameterProvider
+import io.element.android.features.messages.impl.messagecomposer.gif.TenorGif
 import io.element.android.libraries.textcomposer.mentions.ResolvedSuggestion
 import io.element.android.libraries.textcomposer.model.MessageComposerMode
 import io.element.android.libraries.textcomposer.model.TextEditorState
@@ -30,6 +31,13 @@ fun aMessageComposerState(
     mode: MessageComposerMode = MessageComposerMode.Normal,
     showTextFormatting: Boolean = false,
     showAttachmentSourcePicker: Boolean = false,
+    showGifPicker: Boolean = false,
+    gifQuery: String = "",
+    selectedTenorTab: TenorPickerTab = TenorPickerTab.Gifs,
+    gifResults: ImmutableList<TenorGif> = persistentListOf(),
+    recentGifs: ImmutableList<TenorGif> = persistentListOf(),
+    favoriteStickers: ImmutableList<TenorGif> = persistentListOf(),
+    isLoadingGifs: Boolean = false,
     canShareLocation: Boolean = true,
     suggestions: ImmutableList<ResolvedSuggestion> = persistentListOf(),
     eventSink: (MessageComposerEvent) -> Unit = {},
@@ -39,6 +47,13 @@ fun aMessageComposerState(
     mode = mode,
     showTextFormatting = showTextFormatting,
     showAttachmentSourcePicker = showAttachmentSourcePicker,
+    showGifPicker = showGifPicker,
+    gifQuery = gifQuery,
+    selectedTenorTab = selectedTenorTab,
+    gifResults = gifResults,
+    recentGifs = recentGifs,
+    favoriteStickers = favoriteStickers,
+    isLoadingGifs = isLoadingGifs,
     canShareLocation = canShareLocation,
     suggestions = suggestions,
     resolveMentionDisplay = { _, _ -> TextDisplay.Plain },

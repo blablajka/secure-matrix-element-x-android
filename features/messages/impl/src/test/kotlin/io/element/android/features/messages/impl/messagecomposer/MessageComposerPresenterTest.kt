@@ -26,6 +26,10 @@ import io.element.android.features.messages.impl.MessagesNavigator
 import io.element.android.features.messages.impl.attachments.Attachment
 import io.element.android.features.messages.impl.draft.ComposerDraftService
 import io.element.android.features.messages.impl.draft.FakeComposerDraftService
+import io.element.android.features.messages.impl.messagecomposer.gif.ImportedTenorMedia
+import io.element.android.features.messages.impl.messagecomposer.gif.TenorGif
+import io.element.android.features.messages.impl.messagecomposer.gif.TenorGifDataSource
+import io.element.android.features.messages.impl.messagecomposer.gif.TenorMediaKind
 import io.element.android.features.messages.impl.messagecomposer.suggestions.SuggestionsProcessor
 import io.element.android.features.messages.impl.timeline.TimelineController
 import io.element.android.features.messages.impl.utils.FakeMentionSpanFormatter
@@ -133,6 +137,7 @@ class MessageComposerPresenterTest {
     private val localMediaFactory = FakeLocalMediaFactory(mockMediaUrl)
     private val analyticsService = FakeAnalyticsService()
     private val notificationConversationService = FakeNotificationConversationService()
+    private val tenorGifDataSource = FakeTenorGifDataSource()
 
     @Test
     fun `present - initial state`() = runTest {
@@ -758,6 +763,126 @@ class MessageComposerPresenterTest {
             val initialState = awaitFirstItem()
             initialState.eventSink(MessageComposerEvent.PickAttachmentSource.FromGallery)
             // No crashes here, otherwise it fails
+        }
+    }
+
+    @Test
+    fun `present - open gif picker and load gifs`() = runTest {
+        val presenter = createPresenter()
+        presenter.test {
+            val initialState = awaitFirstItem()
+            initialState.eventSink(MessageComposerEvent.PickAttachmentSource.Gif)
+            advanceUntilIdle()
+            val stateWithGifs = awaitItem()
+            assertThat(stateWithGifs.showGifPicker).isTrue()
+            assertThat(stateWithGifs.gifResults).isNotEmpty()
+            assertThat(stateWithGifs.recentGifs).hasSize(1)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `present - open sticker picker and load stickers with favorites`() = runTest {
+        val tenorGifDataSource = FakeTenorGifDataSource().apply {
+            seedFavoriteSticker(trendingSticker())
+        }
+        val presenter = createPresenter(tenorGifDataSource = tenorGifDataSource)
+        presenter.test {
+            val initialState = awaitFirstItem()
+            initialState.eventSink(MessageComposerEvent.PickAttachmentSource.Sticker)
+            advanceUntilIdle()
+            val stateWithStickers = awaitItem()
+            assertThat(stateWithStickers.showGifPicker).isTrue()
+            assertThat(stateWithStickers.selectedTenorTab).isEqualTo(TenorPickerTab.Stickers)
+            assertThat(stateWithStickers.gifResults).containsExactly(tenorGifDataSource.trendingSticker())
+            assertThat(stateWithStickers.favoriteStickers).containsExactly(tenorGifDataSource.trendingSticker())
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `present - toggle sticker favorite updates favorites tab`() = runTest {
+        val tenorGifDataSource = FakeTenorGifDataSource()
+        val presenter = createPresenter(tenorGifDataSource = tenorGifDataSource)
+        presenter.test {
+            val initialState = awaitFirstItem()
+            initialState.eventSink(MessageComposerEvent.PickAttachmentSource.Sticker)
+            advanceUntilIdle()
+            val stateWithStickers = awaitItem()
+            val sticker = stateWithStickers.gifResults.single()
+
+            stateWithStickers.eventSink(MessageComposerEvent.ToggleStickerFavorite(sticker))
+            advanceUntilIdle()
+            val favoriteUpdatedState = awaitItem()
+            assertThat(favoriteUpdatedState.favoriteStickers).containsExactly(sticker)
+
+            favoriteUpdatedState.eventSink(MessageComposerEvent.UpdateTenorTab(TenorPickerTab.Favorites))
+            advanceUntilIdle()
+            val favoritesState = awaitItem()
+            assertThat(favoritesState.selectedTenorTab).isEqualTo(TenorPickerTab.Favorites)
+            assertThat(favoritesState.gifResults).containsExactly(sticker)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `present - select tenor gif imports media saves recent and opens preview`() = runTest {
+        val tenorGifDataSource = FakeTenorGifDataSource()
+        val onPreviewAttachmentLambda = lambdaRecorder { _: ImmutableList<Attachment>, _: EventId? -> }
+        val navigator = FakeMessagesNavigator(
+            onPreviewAttachmentLambda = onPreviewAttachmentLambda
+        )
+        val presenter = createPresenter(
+            navigator = navigator,
+            tenorGifDataSource = tenorGifDataSource,
+        )
+        presenter.test {
+            val initialState = awaitFirstItem()
+            initialState.eventSink(MessageComposerEvent.PickAttachmentSource.Gif)
+            advanceUntilIdle()
+            val stateWithGifs = awaitItem()
+            val gif = stateWithGifs.gifResults.single()
+
+            stateWithGifs.eventSink(MessageComposerEvent.SelectGif(gif))
+            advanceUntilIdle()
+            val closedPickerState = awaitItem()
+            assertThat(closedPickerState.showGifPicker).isFalse()
+            advanceUntilIdle()
+            onPreviewAttachmentLambda.assertions().isCalledOnce()
+            assertThat(tenorGifDataSource.lastImportedGif).isEqualTo(gif)
+            assertThat(tenorGifDataSource.getRecent().first()).isEqualTo(gif)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `present - select tenor sticker imports media without updating recent gifs`() = runTest {
+        val tenorGifDataSource = FakeTenorGifDataSource()
+        val onPreviewAttachmentLambda = lambdaRecorder { _: ImmutableList<Attachment>, _: EventId? -> }
+        val navigator = FakeMessagesNavigator(
+            onPreviewAttachmentLambda = onPreviewAttachmentLambda
+        )
+        val presenter = createPresenter(
+            navigator = navigator,
+            tenorGifDataSource = tenorGifDataSource,
+        )
+        presenter.test {
+            val initialState = awaitFirstItem()
+            initialState.eventSink(MessageComposerEvent.PickAttachmentSource.Sticker)
+            advanceUntilIdle()
+            val stateWithStickers = awaitItem()
+            val sticker = stateWithStickers.gifResults.single()
+            val recentBeforeSelection = tenorGifDataSource.getRecent()
+
+            stateWithStickers.eventSink(MessageComposerEvent.SelectGif(sticker))
+            advanceUntilIdle()
+            val closedPickerState = awaitItem()
+            assertThat(closedPickerState.showGifPicker).isFalse()
+            advanceUntilIdle()
+            onPreviewAttachmentLambda.assertions().isCalledOnce()
+            assertThat(tenorGifDataSource.lastImportedGif).isEqualTo(sticker)
+            assertThat(tenorGifDataSource.getRecent()).isEqualTo(recentBeforeSelection)
+            cancelAndIgnoreRemainingEvents()
         }
     }
 
@@ -1511,6 +1636,7 @@ class MessageComposerPresenterTest {
         textPillificationHelper: TextPillificationHelper = FakeTextPillificationHelper(),
         isRichTextEditorEnabled: Boolean = true,
         draftService: ComposerDraftService = FakeComposerDraftService(),
+        tenorGifDataSource: TenorGifDataSource = this@MessageComposerPresenterTest.tenorGifDataSource,
         mediaOptimizationConfigProvider: FakeMediaOptimizationConfigProvider = FakeMediaOptimizationConfigProvider(),
     ) = MessageComposerPresenter(
         navigator = navigator,
@@ -1543,6 +1669,7 @@ class MessageComposerPresenterTest {
         permalinkBuilder = permalinkBuilder,
         timelineController = TimelineController(room, timeline),
         draftService = draftService,
+        tenorGifDataSource = tenorGifDataSource,
         mentionSpanProvider = mentionSpanProvider,
         pillificationHelper = textPillificationHelper,
         suggestionsProcessor = SuggestionsProcessor(),
@@ -1556,6 +1683,105 @@ class MessageComposerPresenterTest {
     private suspend fun <T> ReceiveTurbine<T>.awaitFirstItem(): T {
         skipItems(1)
         return awaitItem()
+    }
+
+    private class FakeTenorGifDataSource : TenorGifDataSource {
+        private val recent = mutableListOf(
+            TenorGif(
+                id = "recent_1",
+                title = "recent",
+                kind = TenorMediaKind.Gif,
+                previewUrl = "https://example.org/recent-preview.gif",
+                mediaUrl = "https://example.org/recent.gif",
+            )
+        )
+        private val favorites = mutableListOf<TenorGif>()
+
+        var lastImportedGif: TenorGif? = null
+            private set
+
+        fun trendingGif(): TenorGif = createTenorGif(
+            id = "trend_gif_1",
+            title = "trend gif",
+            kind = TenorMediaKind.Gif,
+        )
+
+        fun trendingSticker(): TenorGif = createTenorGif(
+            id = "trend_sticker_1",
+            title = "trend sticker",
+            kind = TenorMediaKind.Sticker,
+        )
+
+        fun seedFavoriteSticker(gif: TenorGif) {
+            favorites.removeAll { it.id == gif.id }
+            favorites.add(0, gif)
+        }
+
+        override suspend fun getTrending(
+            sessionId: String,
+            kind: TenorMediaKind,
+            limit: Int,
+        ): Result<List<TenorGif>> = Result.success(
+            listOf(
+                when (kind) {
+                    TenorMediaKind.Gif -> trendingGif()
+                    TenorMediaKind.Sticker -> trendingSticker()
+                }
+            )
+        )
+
+        override suspend fun search(
+            sessionId: String,
+            kind: TenorMediaKind,
+            query: String,
+            limit: Int,
+        ): Result<List<TenorGif>> = getTrending(sessionId, kind, limit)
+
+        override suspend fun importMedia(sessionId: String, gif: TenorGif): Result<ImportedTenorMedia> = Result.success(
+            ImportedTenorMedia(
+                uri = Uri.parse(
+                    when (gif.kind) {
+                        TenorMediaKind.Gif -> "file://downloaded.gif"
+                        TenorMediaKind.Sticker -> "file://downloaded.webp"
+                    }
+                ),
+                mimeType = when (gif.kind) {
+                    TenorMediaKind.Gif -> MimeTypes.Gif
+                    TenorMediaKind.Sticker -> MimeTypes.WebP
+                },
+            )
+        ).onSuccess {
+            lastImportedGif = gif
+        }
+
+        override suspend fun getRecent(): List<TenorGif> = recent.toList()
+
+        override suspend fun saveRecent(gif: TenorGif) {
+            recent.removeAll { it.id == gif.id }
+            recent.add(0, gif)
+        }
+
+        override suspend fun getFavoriteStickers(sessionId: String): Result<List<TenorGif>> = Result.success(favorites.toList())
+
+        override suspend fun toggleFavoriteSticker(sessionId: String, gif: TenorGif): Result<List<TenorGif>> {
+            val removed = favorites.removeAll { it.id == gif.id }
+            if (!removed) {
+                favorites.add(0, gif)
+            }
+            return Result.success(favorites.toList())
+        }
+
+        private fun createTenorGif(
+            id: String,
+            title: String,
+            kind: TenorMediaKind,
+        ) = TenorGif(
+            id = id,
+            title = title,
+            kind = kind,
+            previewUrl = "https://example.org/$id-preview",
+            mediaUrl = "https://example.org/$id",
+        )
     }
 }
 
