@@ -22,6 +22,7 @@ import dev.zacsweers.metro.AssistedFactory
 import dev.zacsweers.metro.AssistedInject
 import dev.zacsweers.metro.ContributesBinding
 import io.element.android.libraries.designsystem.theme.components.SearchBarResultState
+import io.element.android.libraries.matrix.api.LocalOnlyModeService
 import io.element.android.libraries.di.SessionScope
 import io.element.android.libraries.matrix.api.MatrixClient
 import io.element.android.libraries.matrix.api.room.recent.RecentDirectRoom
@@ -43,6 +44,7 @@ class DefaultUserListPresenter(
     @Assisted val userRepository: UserRepository,
     @Assisted val userListDataStore: UserListDataStore,
     private val matrixClient: MatrixClient,
+    private val localOnlyModeService: LocalOnlyModeService,
 ) : UserListPresenter {
     @AssistedFactory
     @ContributesBinding(SessionScope::class)
@@ -58,10 +60,14 @@ class DefaultUserListPresenter(
     override fun present(): UserListState {
         var recentDirectRooms by remember { mutableStateOf(emptyList<RecentDirectRoom>()) }
         LaunchedEffect(Unit) {
-            recentDirectRooms = matrixClient
-                .getRecentDirectRooms()
-                .take(MAX_SUGGESTIONS_COUNT)
-                .toList()
+            recentDirectRooms = if (localOnlyModeService.isLocalOnly().getOrDefault(false)) {
+                emptyList()
+            } else {
+                matrixClient
+                    .getRecentDirectRooms()
+                    .take(MAX_SUGGESTIONS_COUNT)
+                    .toList()
+            }
         }
         var isSearchActive by rememberSaveable { mutableStateOf(false) }
         val selectedUsers by userListDataStore.selectedUsers.collectAsState(emptyList())

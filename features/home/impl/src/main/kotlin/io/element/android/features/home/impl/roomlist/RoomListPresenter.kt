@@ -45,6 +45,7 @@ import io.element.android.features.leaveroom.api.LeaveRoomState
 import io.element.android.libraries.architecture.AsyncData
 import io.element.android.libraries.architecture.Presenter
 import io.element.android.libraries.fullscreenintent.api.FullScreenIntentPermissionsState
+import io.element.android.libraries.matrix.api.LocalOnlyModeService
 import io.element.android.libraries.matrix.api.MatrixClient
 import io.element.android.libraries.matrix.api.core.RoomId
 import io.element.android.libraries.matrix.api.encryption.RecoveryState
@@ -75,6 +76,7 @@ import kotlinx.coroutines.launch
 @Inject
 class RoomListPresenter(
     private val client: MatrixClient,
+    private val localOnlyModeService: LocalOnlyModeService,
     private val leaveRoomPresenter: Presenter<LeaveRoomState>,
     private val roomListDataSource: RoomListDataSource,
     private val filtersPresenter: Presenter<RoomListFiltersState>,
@@ -101,9 +103,11 @@ class RoomListPresenter(
         val searchState = searchPresenter.present()
         val spaceFiltersState = spaceFiltersPresenter.present()
         val acceptDeclineInviteState = acceptDeclineInvitePresenter.present()
+        var isLocalOnlyMode by remember { mutableStateOf(false) }
 
         LaunchedEffect(Unit) {
             roomListDataSource.launchIn(this)
+            isLocalOnlyMode = localOnlyModeService.isLocalOnly().getOrDefault(false)
         }
 
         var securityBannerDismissed by rememberSaveable { mutableStateOf(false) }
@@ -168,6 +172,7 @@ class RoomListPresenter(
         val contentState = roomListContentState(
             securityBannerDismissed,
             showNewNotificationSoundBanner,
+            isLocalOnlyMode,
         )
 
         val canReportRoom by produceState(false) { value = client.canReportRoom() }
@@ -226,14 +231,28 @@ class RoomListPresenter(
     private fun roomListContentState(
         securityBannerDismissed: Boolean,
         showNewNotificationSoundBanner: Boolean,
+        isLocalOnlyMode: Boolean,
     ): RoomListContentState {
         val roomSummaries by produceState(initialValue = AsyncData.Loading()) {
             roomListDataSource.roomSummariesFlow.collect { value = AsyncData.Success(it) }
         }
         val loadingState by roomListDataSource.loadingState.collectAsState()
+        val visibleSummaries by remember(roomSummaries, isLocalOnlyMode) {
+            derivedStateOf {
+                roomSummaries.dataOrNull().orEmpty().filterNot { summary ->
+                    isLocalOnlyMode && summary.isDm
+                }
+            }
+        }
         val showEmpty by remember {
             derivedStateOf {
-                (loadingState as? RoomList.LoadingState.Loaded)?.numberOfRooms == 0
+                when (val currentLoadingState = loadingState) {
+                    is RoomList.LoadingState.Loaded -> {
+                        currentLoadingState.numberOfRooms == 0 ||
+                            (isLocalOnlyMode && roomSummaries is AsyncData.Success && visibleSummaries.isEmpty())
+                    }
+                    else -> false
+                }
             }
         }
         val showSkeleton by remember {
@@ -256,7 +275,7 @@ class RoomListPresenter(
                     showNewNotificationSoundBanner = showNewNotificationSoundBanner,
                     fullScreenIntentPermissionsState = fullScreenIntentPermissionsPresenter.present(),
                     batteryOptimizationState = batteryOptimizationPresenter.present(),
-                    summaries = roomSummaries.dataOrNull().orEmpty().toImmutableList(),
+                    summaries = visibleSummaries.toImmutableList(),
                     seenRoomInvites = seenRoomInvites.toImmutableSet(),
                 )
             }

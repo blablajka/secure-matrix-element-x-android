@@ -37,6 +37,7 @@ import io.element.android.libraries.dateformatter.test.FakeDateFormatter
 import io.element.android.libraries.eventformatter.api.RoomLatestEventFormatter
 import io.element.android.libraries.eventformatter.test.FakeRoomLatestEventFormatter
 import io.element.android.libraries.fullscreenintent.api.aFullScreenIntentPermissionsState
+import io.element.android.libraries.matrix.api.LocalOnlyModeService
 import io.element.android.libraries.matrix.api.MatrixClient
 import io.element.android.libraries.matrix.api.core.RoomId
 import io.element.android.libraries.matrix.api.core.SessionId
@@ -129,6 +130,36 @@ class RoomListPresenterTest {
                 )
             )
             assertThat(withRoomsState.contentAsRooms().seenRoomInvites).containsExactly(A_ROOM_ID, A_ROOM_ID_2, A_ROOM_ID_3)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `present - local only mode hides legacy dm rooms from list`() = runTest {
+        val roomList = FakeDynamicRoomList(
+            loadingState = MutableStateFlow(RoomList.LoadingState.Loaded(2))
+        )
+        val roomListService = FakeRoomListService(
+            createRoomListLambda = { roomList }
+        )
+        val matrixClient = FakeMatrixClient(
+            roomListService = roomListService
+        )
+        val presenter = createRoomListPresenter(
+            client = matrixClient,
+            localOnlyModeService = LocalOnlyModeService { Result.success(true) },
+        )
+        presenter.test {
+            roomList.summaries.emit(
+                listOf(
+                    aRoomSummary(roomId = A_ROOM_ID, isDirect = true),
+                    aRoomSummary(roomId = A_ROOM_ID_2, isDirect = false),
+                )
+            )
+
+            val withRoomsState =
+                consumeItemsUntilPredicate { state -> state.contentState is RoomListContentState.Rooms && state.contentAsRooms().summaries.isNotEmpty() }.last()
+            assertThat(withRoomsState.contentAsRooms().summaries.map { it.roomId }).containsExactly(A_ROOM_ID_2)
             cancelAndIgnoreRemainingEvents()
         }
     }
@@ -655,6 +686,7 @@ class RoomListPresenterTest {
 
     private fun TestScope.createRoomListPresenter(
         client: MatrixClient = FakeMatrixClient(),
+        localOnlyModeService: LocalOnlyModeService = LocalOnlyModeService { Result.success(false) },
         leaveRoomState: LeaveRoomState = aLeaveRoomState(),
         dateFormatter: DateFormatter = FakeDateFormatter(),
         roomLatestEventFormatter: RoomLatestEventFormatter = FakeRoomLatestEventFormatter(),
@@ -670,6 +702,7 @@ class RoomListPresenterTest {
         announcementService: AnnouncementService = FakeAnnouncementService(),
     ) = RoomListPresenter(
         client = client,
+        localOnlyModeService = localOnlyModeService,
         leaveRoomPresenter = { leaveRoomState },
         roomListDataSource = RoomListDataSource(
             roomListService = client.roomListService,

@@ -11,7 +11,12 @@ package io.element.android.features.startchat.impl.userlist
 import androidx.compose.foundation.text.input.setTextAndPlaceCursorAtEnd
 import com.google.common.truth.Truth.assertThat
 import io.element.android.libraries.designsystem.theme.components.SearchBarResultState
+import io.element.android.libraries.matrix.api.LocalOnlyModeService
 import io.element.android.libraries.matrix.test.FakeMatrixClient
+import io.element.android.libraries.matrix.test.A_ROOM_ID
+import io.element.android.libraries.matrix.test.room.FakeBaseRoom
+import io.element.android.libraries.matrix.test.room.aRoomInfo
+import io.element.android.libraries.matrix.test.room.aRoomMember
 import io.element.android.libraries.matrix.ui.components.aMatrixUser
 import io.element.android.libraries.matrix.ui.components.aMatrixUserList
 import io.element.android.libraries.usersearch.api.UserSearchResult
@@ -38,6 +43,7 @@ class DefaultUserListPresenterTest {
                 userRepository,
                 UserListDataStore(),
                 FakeMatrixClient(),
+                LocalOnlyModeService { Result.success(false) },
             )
         presenter.test {
             skipItems(1)
@@ -58,6 +64,7 @@ class DefaultUserListPresenterTest {
                 userRepository,
                 UserListDataStore(),
                 FakeMatrixClient(),
+                LocalOnlyModeService { Result.success(false) },
             )
         presenter.test {
             skipItems(1)
@@ -71,6 +78,34 @@ class DefaultUserListPresenterTest {
     }
 
     @Test
+    fun `present - local only mode hides recent direct rooms`() = runTest {
+        val directUser = aMatrixUser("@bob:chat.test", "Bob")
+        val matrixClient = FakeMatrixClient().apply {
+            givenGetRoomResult(
+                A_ROOM_ID,
+                FakeBaseRoom(
+                    initialRoomInfo = aRoomInfo(isDirect = true),
+                    getDirectRoomMemberResult = { aRoomMember(userId = directUser.userId, displayName = directUser.displayName, avatarUrl = directUser.avatarUrl) },
+                ),
+            )
+        }
+        matrixClient.trackRecentlyVisitedRoom(A_ROOM_ID)
+        val presenter =
+            DefaultUserListPresenter(
+                UserListPresenterArgs(selectionMode = SelectionMode.Single),
+                userRepository,
+                UserListDataStore(),
+                matrixClient,
+                LocalOnlyModeService { Result.success(true) },
+            )
+        presenter.test {
+            skipItems(1)
+            val initialState = awaitItem()
+            assertThat(initialState.recentDirectRooms).isEmpty()
+        }
+    }
+
+    @Test
     fun `present - update search query`() = runTest {
         val presenter =
             DefaultUserListPresenter(
@@ -78,6 +113,7 @@ class DefaultUserListPresenterTest {
                 userRepository,
                 UserListDataStore(),
                 FakeMatrixClient(),
+                LocalOnlyModeService { Result.success(false) },
             )
         presenter.test {
             skipItems(1)
@@ -113,6 +149,7 @@ class DefaultUserListPresenterTest {
                 userRepository,
                 UserListDataStore(),
                 FakeMatrixClient(),
+                LocalOnlyModeService { Result.success(false) },
             )
         presenter.test {
             skipItems(1)
@@ -164,6 +201,7 @@ class DefaultUserListPresenterTest {
                 userRepository,
                 UserListDataStore(),
                 FakeMatrixClient(),
+                LocalOnlyModeService { Result.success(false) },
             )
         presenter.test {
             skipItems(1)
@@ -188,6 +226,7 @@ class DefaultUserListPresenterTest {
                 userRepository,
                 UserListDataStore(),
                 FakeMatrixClient(),
+                LocalOnlyModeService { Result.success(false) },
             )
         presenter.test {
             skipItems(1)
