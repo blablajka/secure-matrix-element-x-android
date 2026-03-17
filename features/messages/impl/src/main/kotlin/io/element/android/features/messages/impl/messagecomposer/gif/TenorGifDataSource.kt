@@ -45,6 +45,7 @@ data class TenorGif(
 data class ImportedTenorMedia(
     val uri: Uri,
     val mimeType: String,
+    val contentUri: String,
 )
 
 interface TenorGifDataSource {
@@ -110,9 +111,13 @@ class DefaultTenorGifDataSource(
             body = requestBody.toString(),
         )
         val downloadUrl = responseJson.optString("download_url")
+        val contentUri = responseJson.optString("content_uri")
         val mimeType = responseJson.optString("mime_type").ifBlank { defaultMimeType(gif.kind) }
         if (downloadUrl.isBlank()) {
             throw IOException("Missing download_url in tenor import response")
+        }
+        if (contentUri.isBlank()) {
+            throw IOException("Missing content_uri in tenor import response")
         }
         ImportedTenorMedia(
             uri = downloadToCache(
@@ -122,6 +127,7 @@ class DefaultTenorGifDataSource(
                 filePrefix = "tenor_${gif.kind.apiValue}_",
             ),
             mimeType = mimeType,
+            contentUri = contentUri,
         )
     }
 

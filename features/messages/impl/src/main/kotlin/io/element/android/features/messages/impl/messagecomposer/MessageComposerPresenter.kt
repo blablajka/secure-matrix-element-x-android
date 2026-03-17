@@ -36,6 +36,7 @@ import io.element.android.features.messages.impl.attachments.Attachment
 import io.element.android.features.messages.impl.attachments.preview.error.sendAttachmentError
 import io.element.android.features.messages.impl.draft.ComposerDraftService
 import io.element.android.features.messages.impl.localdm.LocalOnlyModeApi
+import io.element.android.features.messages.impl.messagecomposer.gif.ImportedTenorMedia
 import io.element.android.features.messages.impl.messagecomposer.gif.TenorGif
 import io.element.android.features.messages.impl.messagecomposer.gif.TenorGifDataSource
 import io.element.android.features.messages.impl.messagecomposer.gif.TenorMediaKind
@@ -102,6 +103,7 @@ import kotlinx.coroutines.launch
 import timber.log.Timber
 import kotlin.time.Duration.Companion.seconds
 import io.element.android.libraries.core.mimetype.MimeTypes.Any as AnyMimeTypes
+import org.json.JSONObject
 
 @Suppress("LargeClass")
 @AssistedInject
@@ -391,8 +393,15 @@ class MessageComposerPresenter(
                                 if (event.gif.kind == TenorMediaKind.Gif) {
                                     tenorGifDataSource.saveRecent(event.gif)
                                     recentGifs = tenorGifDataSource.getRecent()
+                                    handlePickedMedia(importedMedia.uri, importedMedia.mimeType)
+                                } else {
+                                    sendSticker(
+                                        importedMedia = importedMedia,
+                                        title = event.gif.title,
+                                        inReplyToEventId = (messageComposerContext.composerMode as? MessageComposerMode.Reply)?.eventId,
+                                    )
+                                    messageComposerContext.composerMode = MessageComposerMode.Normal
                                 }
-                                handlePickedMedia(importedMedia.uri, importedMedia.mimeType)
                             }
                             .onFailure { cause ->
                                 Timber.e(cause, "Failed to import tenor media")
@@ -735,6 +744,47 @@ class MessageComposerPresenter(
     }
         .onFailure { cause ->
             Timber.e(cause, "Failed to send attachment")
+            if (cause is CancellationException) {
+                throw cause
+            } else {
+                val snackbarMessage = SnackbarMessage(sendAttachmentError(cause))
+                snackbarDispatcher.post(snackbarMessage)
+            }
+        }
+
+    private suspend fun sendSticker(
+        importedMedia: ImportedTenorMedia,
+        title: String,
+        inReplyToEventId: EventId?,
+    ) = runCatchingExceptions {
+        val stickerTitle = title.ifBlank { "sticker" }
+        val content = JSONObject().apply {
+            put("body", stickerTitle)
+            put("url", importedMedia.contentUri)
+            put(
+                "info",
+                JSONObject().apply {
+                    put("mimetype", importedMedia.mimeType)
+                }
+            )
+            if (inReplyToEventId != null) {
+                put(
+                    "m.relates_to",
+                    JSONObject().apply {
+                        put(
+                            "m.in_reply_to",
+                            JSONObject().apply {
+                                put("event_id", inReplyToEventId.value)
+                            }
+                        )
+                    }
+                )
+            }
+        }
+        room.sendRaw(eventType = "m.sticker", content = content.toString()).getOrThrow()
+    }
+        .onFailure { cause ->
+            Timber.e(cause, "Failed to send sticker")
             if (cause is CancellationException) {
                 throw cause
             } else {

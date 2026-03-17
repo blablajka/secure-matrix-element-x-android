@@ -54,6 +54,12 @@ interface JoinedRoom : BaseRoom {
     suspend fun editMessage(eventId: EventId, body: String, htmlBody: String?, intentionalMentions: List<IntentionalMention>): Result<Unit>
 
     /**
+     * Send a custom room event with the provided raw JSON content.
+     * This is intended for fork-specific event flows that are not yet modeled in the typed SDK surface.
+     */
+    suspend fun sendRaw(eventType: String, content: String): Result<Unit>
+
+    /**
      * Send a typing notification.
      * @param isTyping True if the user is typing, false otherwise.
      */

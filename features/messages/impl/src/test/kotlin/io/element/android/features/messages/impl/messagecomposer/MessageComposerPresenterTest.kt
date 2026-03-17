@@ -119,6 +119,7 @@ import kotlinx.coroutines.test.runTest
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.json.JSONObject
 import org.robolectric.RobolectricTestRunner
 import uniffi.wysiwyg_composer.MentionsState
 import java.io.File
@@ -857,14 +858,21 @@ class MessageComposerPresenterTest {
     }
 
     @Test
-    fun `present - select tenor sticker imports media without updating recent gifs`() = runTest {
+    fun `present - select tenor sticker sends m sticker without updating recent gifs`() = runTest {
         val tenorGifDataSource = FakeTenorGifDataSource()
-        val onPreviewAttachmentLambda = lambdaRecorder { _: ImmutableList<Attachment>, _: EventId? -> }
-        val navigator = FakeMessagesNavigator(
-            onPreviewAttachmentLambda = onPreviewAttachmentLambda
+        var sentEventType: String? = null
+        var sentContent: String? = null
+        val sendRawLambda = lambdaRecorder { eventType: String, content: String ->
+            sentEventType = eventType
+            sentContent = content
+            Result.success(Unit)
+        }
+        val room = FakeJoinedRoom(
+            typingNoticeResult = { Result.success(Unit) },
+            sendRawResult = sendRawLambda,
         )
         val presenter = createPresenter(
-            navigator = navigator,
+            room = room,
             tenorGifDataSource = tenorGifDataSource,
         )
         presenter.test {
@@ -880,9 +888,14 @@ class MessageComposerPresenterTest {
             val closedPickerState = awaitItem()
             assertThat(closedPickerState.showGifPicker).isFalse()
             advanceUntilIdle()
-            onPreviewAttachmentLambda.assertions().isCalledOnce()
             assertThat(tenorGifDataSource.lastImportedGif).isEqualTo(sticker)
             assertThat(tenorGifDataSource.getRecent()).isEqualTo(recentBeforeSelection)
+            sendRawLambda.assertions().isCalledOnce()
+            val payload = JSONObject(sentContent ?: error("Missing sticker payload"))
+            assertThat(sentEventType).isEqualTo("m.sticker")
+            assertThat(payload.getString("body")).isEqualTo(sticker.title)
+            assertThat(payload.getString("url")).isEqualTo("mxc://test/downloaded.webp")
+            assertThat(payload.getJSONObject("info").getString("mimetype")).isEqualTo(MimeTypes.WebP)
             cancelAndIgnoreRemainingEvents()
         }
     }
@@ -1772,6 +1785,10 @@ class MessageComposerPresenterTest {
                 mimeType = when (gif.kind) {
                     TenorMediaKind.Gif -> MimeTypes.Gif
                     TenorMediaKind.Sticker -> MimeTypes.WebP
+                },
+                contentUri = when (gif.kind) {
+                    TenorMediaKind.Gif -> "mxc://test/downloaded.gif"
+                    TenorMediaKind.Sticker -> "mxc://test/downloaded.webp"
                 },
             )
         ).onSuccess {

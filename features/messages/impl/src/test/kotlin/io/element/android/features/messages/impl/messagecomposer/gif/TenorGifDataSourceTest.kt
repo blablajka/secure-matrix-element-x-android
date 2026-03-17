@@ -75,6 +75,7 @@ class TenorGifDataSourceTest {
 
         assertThat(imported.mimeType).isEqualTo("image/gif")
         assertThat(imported.uri.toString()).startsWith("file:")
+        assertThat(imported.contentUri).isEqualTo("mxc://test/mediaid")
 
         val importRequest = interceptor.recordedRequests.single { it.url.contains("/tenor/import") }
         assertThat(importRequest.authorization).isEqualTo("Bearer $accessToken")
@@ -169,6 +170,7 @@ class TenorGifDataSourceTest {
                     request.jsonResponse(
                         """
                         {
+                          "content_uri": "mxc://test/mediaid",
                           "download_url": "https://chat.test/_matrix/client/v1/media/download/test/mediaid/hello.gif",
                           "mime_type": "image/gif"
                         }
